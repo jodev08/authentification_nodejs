@@ -1,3 +1,5 @@
+//https://www.youtube.com/watch?v=GXokEYwbOwA :: 20:35
+
 const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
@@ -21,6 +23,12 @@ function generateAccessToken(user) {
   });
 }
 
+function generateRefreshToken(user) {
+  return jwt.sign(user, process.env.REFRESH_TOKEN_SECRET, {
+    expiresIn: "1y",
+  });
+}
+
 //--------------route--------------
 app.post("/api/login", (req, res) => {
   if (req.body.email !== user.email) {
@@ -33,8 +41,34 @@ app.post("/api/login", (req, res) => {
   }
 
   const accessToken = generateAccessToken(user);
+  const refreshedtoken = generateAccessToken(user);
   res.send({
     accessToken,
+    refreshedtoken,
+  });
+});
+
+//------------route refreshtoken-----------
+
+app.post("/api/refreshtoken", (req, res) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; //'Bearer aegfa"ezgf'
+
+  if (!token) {
+    return res.sendStatus(401);
+  }
+  jwt.verify(token, process.env.REFRESH_TOKEN_SECRET, (err, user) => {
+    if (err) {
+      return res.sendStatus(401);
+    }
+
+    delete user.iat;
+    delete user.exp;
+
+    const refreshedtoken = generateAccessToken(user);
+    res.send({
+      accessToken: refreshedtoken,
+    });
   });
 });
 
